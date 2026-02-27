@@ -1,0 +1,5 @@
+{
+  "name": "CouponVault",
+  "description": "Smart coupon manager with AI-powered scanning, expiration tracking, and balance management.",
+  "requestFramePermissions": ["camera"]
+}

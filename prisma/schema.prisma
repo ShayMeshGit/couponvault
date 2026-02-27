@@ -1,0 +1,23 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Coupon {
+  id             String   @id @default(cuid())
+  storeName      String
+  code           String?
+  originalAmount Float
+  amountLeft     Float
+  currency       String   @default("₪")
+  expiryDate     String
+  description    String
+  category       String
+  status         String   @default("active")
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+}
