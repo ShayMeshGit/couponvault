@@ -1,4 +1,4 @@
-import { Coupon, CouponFormData } from "./types";
+import { Coupon, CouponFormData } from "@/types";
 
 const API_BASE = "/api/coupons";
 

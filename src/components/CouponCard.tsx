@@ -1,7 +1,8 @@
 "use client";
 
-import { useState, useSyncExternalStore } from "react";
-import { Coupon } from "@/lib/types";
+import { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
+import type { LucideIcon } from "lucide-react";
+import { CouponCardProps, CouponCategory } from "@/types";
 import {
   Calendar,
   MapPin,
@@ -23,13 +24,7 @@ import {
 import { addDays, format, isWithinInterval, parseISO } from "date-fns";
 import { motion, AnimatePresence } from "motion/react";
 
-interface CouponCardProps {
-  coupon: Coupon;
-  onDelete: (id: string) => void;
-  onUpdate: (coupon: Coupon) => void;
-}
-
-const CATEGORY_ICONS = {
+const CATEGORY_ICONS: Record<CouponCategory, LucideIcon> = {
   Groceries: ShoppingBag,
   Clothing: Tag,
   Dining: Utensils,
@@ -38,41 +33,60 @@ const CATEGORY_ICONS = {
   Other: HelpCircle,
 };
 
-export default function CouponCard({
-  coupon,
-  onDelete,
-  onUpdate,
-}: CouponCardProps) {
+function CouponCard({ coupon, onDelete, onUpdate }: CouponCardProps) {
   const [isRedeeming, setIsRedeeming] = useState(false);
   const [redeemAmount, setRedeemAmount] = useState<number>(0);
   const [copied, setCopied] = useState(false);
-  const isHydrated = useSyncExternalStore(
-    () => () => {},
-    () => true,
-    () => false,
-  );
+  const [now, setNow] = useState<number | null>(null);
+  const copyResetTimeoutRef = useRef<number | null>(null);
 
-  const now = isHydrated ? new Date() : null;
-  const expiryDate = parseISO(coupon.expiryDate);
-  const isExpired = now ? expiryDate.getTime() < now.getTime() : false;
-  const isExpiringSoon = now
-    ? isWithinInterval(expiryDate, {
-        start: now,
-        end: addDays(now, 7),
-      })
-    : false;
+  useEffect(() => {
+    const frameId = window.requestAnimationFrame(() => {
+      setNow(Date.now());
+    });
+
+    return () => {
+      window.cancelAnimationFrame(frameId);
+      if (copyResetTimeoutRef.current !== null) {
+        window.clearTimeout(copyResetTimeoutRef.current);
+      }
+    };
+  }, []);
+
+  const expiryDate = useMemo(
+    () => parseISO(coupon.expiryDate),
+    [coupon.expiryDate],
+  );
+  const isExpired = useMemo(() => {
+    if (now === null) return false;
+    return expiryDate.getTime() < now;
+  }, [expiryDate, now]);
+  const isExpiringSoon = useMemo(() => {
+    if (now === null) return false;
+    const currentDate = new Date(now);
+    return isWithinInterval(expiryDate, {
+      start: currentDate,
+      end: addDays(currentDate, 7),
+    });
+  }, [expiryDate, now]);
 
   const Icon = CATEGORY_ICONS[coupon.category] || HelpCircle;
 
-  const getStatusColor = () => {
+  const statusColor = useMemo(() => {
     if (coupon.status === "redeemed")
       return "bg-zinc-100 text-zinc-500 border-zinc-200";
     if (isExpired) return "bg-red-50 text-red-600 border-red-100";
     if (isExpiringSoon) return "bg-amber-50 text-amber-600 border-amber-100";
     return "bg-emerald-50 text-emerald-600 border-emerald-100";
-  };
+  }, [coupon.status, isExpired, isExpiringSoon]);
 
-  const handleRedeem = () => {
+  const progressPercent = useMemo(() => {
+    const originalAmount = coupon.originalAmount ?? 1;
+    const amountLeft = coupon.amountLeft ?? 0;
+    return (amountLeft / originalAmount) * 100;
+  }, [coupon.amountLeft, coupon.originalAmount]);
+
+  const handleRedeem = useCallback(() => {
     const newAmountLeft = Math.max(0, coupon.amountLeft - redeemAmount);
     const newStatus = newAmountLeft <= 0 ? "redeemed" : coupon.status;
     onUpdate({
@@ -82,15 +96,28 @@ export default function CouponCard({
     });
     setIsRedeeming(false);
     setRedeemAmount(0);
-  };
+  }, [coupon, onUpdate, redeemAmount]);
 
-  const copyToClipboard = () => {
+  const copyToClipboard = useCallback(() => {
     if (coupon.code) {
-      navigator.clipboard.writeText(coupon.code);
+      void navigator.clipboard.writeText(coupon.code);
       setCopied(true);
-      setTimeout(() => setCopied(false), 2000);
+      if (copyResetTimeoutRef.current !== null) {
+        window.clearTimeout(copyResetTimeoutRef.current);
+      }
+      copyResetTimeoutRef.current = window.setTimeout(() => {
+        setCopied(false);
+      }, 2000);
     }
-  };
+  }, [coupon.code]);
+
+  const handleRedeemAmountChange = useCallback(
+    (event: React.ChangeEvent<HTMLInputElement>) => {
+      const value = Number.parseFloat(event.target.value);
+      setRedeemAmount(Number.isFinite(value) ? value : 0);
+    },
+    [],
+  );
 
   return (
     <motion.div
@@ -117,7 +144,7 @@ export default function CouponCard({
                 {coupon.storeName}
               </h3>
               <span
-                className={`shrink-0 rounded-full border px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider ${getStatusColor()}`}
+                className={`shrink-0 rounded-full border px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider ${statusColor}`}
               >
                 {coupon.status === "redeemed"
                   ? "Redeemed"
@@ -199,7 +226,7 @@ export default function CouponCard({
                 step="0.01"
                 placeholder="Amount"
                 value={redeemAmount || ""}
-                onChange={(e) => setRedeemAmount(parseFloat(e.target.value))}
+                onChange={handleRedeemAmountChange}
                 className="flex-1 min-w-0 rounded-xl border border-zinc-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-zinc-900/10"
               />
               <button
@@ -249,7 +276,7 @@ export default function CouponCard({
         <motion.div
           initial={{ width: 0 }}
           animate={{
-            width: `${((coupon.amountLeft ?? 0) / (coupon.originalAmount ?? 1)) * 100}%`,
+            width: `${progressPercent}%`,
           }}
           className={`h-full ${coupon.status === "redeemed" ? "bg-zinc-300" : "bg-zinc-900"}`}
         />
@@ -257,3 +284,5 @@ export default function CouponCard({
     </motion.div>
   );
 }
+
+export default memo(CouponCard);

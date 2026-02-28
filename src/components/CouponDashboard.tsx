@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useMemo } from "react";
 import {
   Plus,
   Search,
@@ -12,14 +12,20 @@ import {
   Info,
 } from "lucide-react";
 import { motion, AnimatePresence } from "motion/react";
-import { Coupon, CouponFormData } from "@/lib/types";
+import {
+  Coupon,
+  CouponApiResponse,
+  CouponFilter,
+  CouponFormData,
+} from "@/types";
 import {
   getCoupons,
   addCoupon,
   updateCoupon,
   deleteCoupon,
-} from "@/lib/coupons-api";
-import { checkExpiringCoupons, ExpiryAlert } from "@/lib/notifications";
+} from "@/services/coupons-api";
+import { FILTER_OPTIONS, normalizeCoupon } from "@/utils/coupon-utils";
+import { checkExpiringCoupons, ExpiryAlert } from "@/utils/notifications";
 import CouponCard from "./CouponCard";
 import AddCouponModal from "./AddCouponModal";
 
@@ -27,24 +33,14 @@ export default function CouponDashboard() {
   const [coupons, setCoupons] = useState<Coupon[]>([]);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
-  const [filter, setFilter] = useState<
-    "all" | "active" | "redeemed" | "expired"
-  >("all");
-  const [alerts, setAlerts] = useState<ExpiryAlert[]>([]);
+  const [filter, setFilter] = useState<CouponFilter>("all");
   const [showNotificationCenter, setShowNotificationCenter] = useState(false);
 
   const refreshCoupons = useCallback(async () => {
     const data = await getCoupons();
-    const migratedData = data.map((coupon) => ({
-      ...coupon,
-      originalAmount: coupon.originalAmount ?? (coupon as any).amount ?? 0,
-      amountLeft: coupon.amountLeft ?? (coupon as any).amount ?? 0,
-      currency: coupon.currency || "₪",
-      category: coupon.category ?? "Other",
-      status: coupon.status === "used" ? "redeemed" : coupon.status,
-    }));
-    setCoupons(migratedData);
-    setAlerts(checkExpiringCoupons(migratedData));
+    setCoupons(
+      data.map((coupon) => normalizeCoupon(coupon as CouponApiResponse)),
+    );
   }, []);
 
   useEffect(() => {
@@ -58,50 +54,101 @@ export default function CouponDashboard() {
     void loadData();
   }, [refreshCoupons]);
 
-  const handleAddCoupon = async (data: CouponFormData) => {
-    try {
-      await addCoupon(data);
-      await refreshCoupons();
-    } catch (error) {
-      console.error("Failed to add coupon", error);
-    }
-  };
-
-  const handleUpdateCoupon = async (updated: Coupon) => {
-    try {
-      await updateCoupon(updated);
-      await refreshCoupons();
-    } catch (error) {
-      console.error("Failed to update coupon", error);
-    }
-  };
-
-  const handleDeleteCoupon = async (id: string) => {
-    if (window.confirm("Are you sure you want to delete this coupon?")) {
+  const handleAddCoupon = useCallback(
+    async (data: CouponFormData) => {
       try {
-        await deleteCoupon(id);
+        await addCoupon(data);
         await refreshCoupons();
       } catch (error) {
-        console.error("Failed to delete coupon", error);
+        console.error("Failed to add coupon", error);
       }
-    }
-  };
+    },
+    [refreshCoupons],
+  );
 
-  const filteredCoupons = coupons.filter((coupon) => {
-    const matchesSearch =
-      coupon.storeName.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      coupon.description.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      coupon.category.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      (coupon.code &&
-        coupon.code.toLowerCase().includes(searchQuery.toLowerCase())) ||
-      coupon.expiryDate.includes(searchQuery);
+  const handleUpdateCoupon = useCallback(
+    async (updated: Coupon) => {
+      try {
+        await updateCoupon(updated);
+        await refreshCoupons();
+      } catch (error) {
+        console.error("Failed to update coupon", error);
+      }
+    },
+    [refreshCoupons],
+  );
 
-    if (filter === "all") return matchesSearch && coupon.status !== "redeemed";
-    return matchesSearch && coupon.status === filter;
-  });
+  const handleDeleteCoupon = useCallback(
+    async (id: string) => {
+      if (window.confirm("Are you sure you want to delete this coupon?")) {
+        try {
+          await deleteCoupon(id);
+          await refreshCoupons();
+        } catch (error) {
+          console.error("Failed to delete coupon", error);
+        }
+      }
+    },
+    [refreshCoupons],
+  );
 
-  const activeCount = coupons.filter((c) => c.status === "active").length;
-  const redeemedCount = coupons.filter((c) => c.status === "redeemed").length;
+  const alerts = useMemo<ExpiryAlert[]>(
+    () => checkExpiringCoupons(coupons),
+    [coupons],
+  );
+
+  const normalizedQuery = useMemo(
+    () => searchQuery.trim().toLowerCase(),
+    [searchQuery],
+  );
+
+  const filteredCoupons = useMemo(
+    () =>
+      coupons.filter((coupon) => {
+        const matchesSearch =
+          coupon.storeName.toLowerCase().includes(normalizedQuery) ||
+          coupon.description.toLowerCase().includes(normalizedQuery) ||
+          coupon.category.toLowerCase().includes(normalizedQuery) ||
+          (coupon.code &&
+            coupon.code.toLowerCase().includes(normalizedQuery)) ||
+          coupon.expiryDate.includes(searchQuery.trim());
+
+        if (filter === "all")
+          return matchesSearch && coupon.status !== "redeemed";
+        return matchesSearch && coupon.status === filter;
+      }),
+    [coupons, filter, normalizedQuery, searchQuery],
+  );
+
+  const { activeCount, redeemedCount } = useMemo(
+    () =>
+      coupons.reduce(
+        (counts, coupon) => {
+          if (coupon.status === "active") counts.activeCount += 1;
+          if (coupon.status === "redeemed") counts.redeemedCount += 1;
+          return counts;
+        },
+        { activeCount: 0, redeemedCount: 0 },
+      ),
+    [coupons],
+  );
+
+  const redeemedPercent = useMemo(
+    () => (redeemedCount / (coupons.length || 1)) * 100,
+    [redeemedCount, coupons.length],
+  );
+
+  const toggleNotificationCenter = useCallback(() => {
+    setShowNotificationCenter((current) => !current);
+  }, []);
+
+  const openModal = useCallback(() => {
+    setIsModalOpen(true);
+  }, []);
+
+  const closeModal = useCallback(() => {
+    setIsModalOpen(false);
+  }, []);
 
   return (
     <div className="min-h-screen pb-20 bg-zinc-50">
@@ -124,7 +171,7 @@ export default function CouponDashboard() {
 
           <div className="flex items-center gap-3">
             <button
-              onClick={() => setShowNotificationCenter(!showNotificationCenter)}
+              onClick={toggleNotificationCenter}
               className="relative p-3 rounded-2xl bg-zinc-100 text-zinc-600 hover:bg-zinc-200 transition-all"
             >
               <Bell className="w-5 h-5" />
@@ -135,7 +182,7 @@ export default function CouponDashboard() {
               )}
             </button>
             <button
-              onClick={() => setIsModalOpen(true)}
+              onClick={openModal}
               className="bg-zinc-900 text-white px-6 py-3 rounded-2xl text-sm font-bold flex items-center gap-2 hover:bg-zinc-800 transition-all shadow-xl shadow-zinc-900/20"
             >
               <Plus className="w-5 h-5" />
@@ -170,9 +217,9 @@ export default function CouponDashboard() {
 
               {alerts.length > 0 ? (
                 <div className="space-y-3">
-                  {alerts.map((alert, idx) => (
+                  {alerts.map((alert) => (
                     <div
-                      key={idx}
+                      key={`${alert.couponId}-${alert.daysRemaining}`}
                       className="flex items-start gap-3 p-4 rounded-2xl bg-amber-50 border border-amber-100"
                     >
                       <AlertTriangle className="w-5 h-5 text-amber-500 shrink-0 mt-0.5" />
@@ -213,7 +260,7 @@ export default function CouponDashboard() {
             </div>
 
             <div className="flex items-center gap-2 overflow-x-auto pb-2 no-scrollbar">
-              {(["all", "active", "redeemed", "expired"] as const).map((f) => (
+              {FILTER_OPTIONS.map((f) => (
                 <button
                   key={f}
                   onClick={() => setFilter(f)}
@@ -250,7 +297,7 @@ export default function CouponDashboard() {
                 <div
                   className="h-full bg-white"
                   style={{
-                    width: `${(redeemedCount / (coupons.length || 1)) * 100}%`,
+                    width: `${redeemedPercent}%`,
                   }}
                 />
               </div>
@@ -261,7 +308,7 @@ export default function CouponDashboard() {
         {/* Coupon Grid */}
         <AnimatePresence initial={false}>
           {filteredCoupons.length > 0 ? (
-            <div className="grid w-full grid-cols-1 gap-6 md:grid-cols-2 md:gap-8 xl:grid-cols-3">
+            <div className="grid w-full grid-cols-1 gap-6 md:grid-cols-2 md:gap-8 xl:grid-cols-2">
               {filteredCoupons.map((coupon) => (
                 <CouponCard
                   key={coupon.id}
@@ -290,7 +337,7 @@ export default function CouponDashboard() {
               </p>
               {!searchQuery && filter === "all" && (
                 <button
-                  onClick={() => setIsModalOpen(true)}
+                  onClick={openModal}
                   className="mt-8 bg-zinc-100 text-zinc-900 px-8 py-3 rounded-2xl font-bold text-sm hover:bg-zinc-200 transition-all"
                 >
                   Add your first coupon
@@ -303,7 +350,7 @@ export default function CouponDashboard() {
 
       <AddCouponModal
         isOpen={isModalOpen}
-        onClose={() => setIsModalOpen(false)}
+        onClose={closeModal}
         onAdd={handleAddCoupon}
       />
     </div>
