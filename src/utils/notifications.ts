@@ -1,5 +1,5 @@
-import { Coupon } from './types';
-import { differenceInDays, parseISO } from 'date-fns';
+import { Coupon } from "@/types";
+import { differenceInDays, parseISO } from "date-fns";
 
 export interface ExpiryAlert {
   couponId: string;
@@ -12,8 +12,8 @@ export const checkExpiringCoupons = (coupons: Coupon[]): ExpiryAlert[] => {
   const alerts: ExpiryAlert[] = [];
   const today = new Date();
 
-  coupons.forEach(coupon => {
-    if (coupon.status === 'redeemed' || coupon.status === 'expired') return;
+  coupons.forEach((coupon) => {
+    if (coupon.status === "redeemed" || coupon.status === "expired") return;
 
     const expiryDate = parseISO(coupon.expiryDate);
     const daysRemaining = differenceInDays(expiryDate, today);
@@ -23,7 +23,7 @@ export const checkExpiringCoupons = (coupons: Coupon[]): ExpiryAlert[] => {
         couponId: coupon.id,
         storeName: coupon.storeName,
         daysRemaining,
-        message: `${coupon.storeName} coupon expires in ${daysRemaining} day${daysRemaining > 1 ? 's' : ''}! Remaining balance: ${coupon.currency}${(coupon.amountLeft ?? 0).toFixed(2)}`,
+        message: `${coupon.storeName} coupon expires in ${daysRemaining} day${daysRemaining > 1 ? "s" : ""}! Remaining balance: ${coupon.currency}${(coupon.amountLeft ?? 0).toFixed(2)}`,
       });
     }
   });

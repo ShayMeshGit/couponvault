@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
-import { Coupon } from "@/lib/types";
+import { Coupon } from "@/types";
 
 function serializeCoupon(coupon: {
   id: string;
