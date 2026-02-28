@@ -1,6 +1,8 @@
+import React from "react";
 import { Search } from "lucide-react";
 import { CouponFilter } from "@/types";
 import { FILTER_OPTIONS } from "@/utils/coupon-utils";
+import { styles } from "./styles";
 
 interface CouponFiltersProps {
   searchQuery: string;
@@ -16,8 +18,8 @@ export default function CouponFilters({
   onFilterChange,
 }: CouponFiltersProps) {
   return (
-    <div className="md:col-span-2 space-y-4">
-      <div className="relative group">
+    <div className={styles.wrapper}>
+      <div className={styles.searchGroup}>
         <Search className="absolute left-5 top-1/2 -translate-y-1/2 w-5 h-5 text-zinc-400 group-focus-within:text-zinc-900 transition-colors" />
         <input
           suppressHydrationWarning
@@ -29,7 +31,7 @@ export default function CouponFilters({
         />
       </div>
 
-      <div className="flex items-center gap-2 overflow-x-auto pb-2 no-scrollbar">
+      <div className={styles.chipsRow}>
         {FILTER_OPTIONS.map((option) => (
           <button
             key={option}

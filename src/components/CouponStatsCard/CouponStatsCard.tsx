@@ -1,4 +1,6 @@
+import React from "react";
 import { Sparkles } from "lucide-react";
+import { styles } from "./styles";
 
 interface CouponStatsCardProps {
   activeCount: number;
@@ -16,7 +18,7 @@ export default function CouponStatsCard({
   redeemedPercent,
 }: CouponStatsCardProps) {
   return (
-    <div className="bg-zinc-900 rounded-[2.5rem] p-8 text-white flex flex-col justify-between relative overflow-hidden shadow-2xl shadow-zinc-900/30">
+    <div className={styles.card}>
       <Sparkles className="absolute -right-4 -top-4 w-32 h-32 text-white/5 rotate-12" />
       <div>
         <p className="text-zinc-400 text-[10px] font-black uppercase tracking-[0.2em] mb-2">

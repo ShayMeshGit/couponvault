@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useState } from "react";
+import React, { useCallback, useState } from "react";
 import type { LucideIcon } from "lucide-react";
 import {
   X,
@@ -19,6 +19,7 @@ import { motion, AnimatePresence } from "motion/react";
 import { AddCouponModalProps, CouponFormData, CouponCategory } from "@/types";
 import { getDefaultCouponFormData } from "@/utils/coupon-utils";
 import { addYears, format } from "date-fns";
+import { styles } from "./styles";
 
 const CATEGORIES: { label: CouponCategory; icon: LucideIcon }[] = [
   { label: "Groceries", icon: ShoppingBag },
@@ -81,13 +82,13 @@ export default function AddCouponModal({
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm">
+    <div className={styles.overlay}>
       <motion.div
         initial={{ opacity: 0, scale: 0.95, y: 20 }}
         animate={{ opacity: 1, scale: 1, y: 0 }}
-        className="bg-white rounded-3xl w-full max-w-lg overflow-hidden shadow-2xl"
+        className={styles.container}
       >
-        <div className="p-6 border-b flex justify-between items-center bg-zinc-50/50">
+        <div className={styles.header}>
           <div>
             <h2 className="text-xl font-bold text-zinc-900">Add New Coupon</h2>
             <p className="text-xs text-zinc-500">
@@ -102,10 +103,7 @@ export default function AddCouponModal({
           </button>
         </div>
 
-        <form
-          onSubmit={handleSubmit}
-          className="p-6 space-y-6 max-h-[80vh] overflow-y-auto"
-        >
+        <form onSubmit={handleSubmit} className={styles.form}>
           <div className="space-y-4">
             <div className="space-y-1.5">
               <label className="text-xs font-bold uppercase tracking-wider text-zinc-500">
