@@ -1,6 +1,13 @@
 "use client";
 
-import { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
+import React, {
+  memo,
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 import type { LucideIcon } from "lucide-react";
 import { CouponCardProps, CouponCategory } from "@/types";
 import {
@@ -23,6 +30,7 @@ import {
 } from "lucide-react";
 import { addDays, format, isWithinInterval, parseISO } from "date-fns";
 import { motion, AnimatePresence } from "motion/react";
+import { styles } from "./styles";
 
 const CATEGORY_ICONS: Record<CouponCategory, LucideIcon> = {
   Groceries: ShoppingBag,
@@ -125,10 +133,8 @@ function CouponCard({ coupon, onDelete, onUpdate }: CouponCardProps) {
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       exit={{ opacity: 0, scale: 0.95 }}
-      className={`relative group w-full min-w-0 overflow-hidden rounded-3xl border p-6 transition-all hover:shadow-xl ${
-        coupon.status === "redeemed"
-          ? "opacity-60 grayscale bg-zinc-50"
-          : "bg-white"
+      className={`${styles.card} ${
+        coupon.status === "redeemed" ? styles.redeemedCard : styles.activeCard
       }`}
     >
       <div className="mb-4 flex min-w-0 items-start justify-between gap-3">
@@ -272,7 +278,7 @@ function CouponCard({ coupon, onDelete, onUpdate }: CouponCardProps) {
       </div>
 
       {/* Progress bar */}
-      <div className="mt-6 h-1.5 w-full bg-zinc-100 rounded-full overflow-hidden">
+      <div className={styles.progressTrack}>
         <motion.div
           initial={{ width: 0 }}
           animate={{

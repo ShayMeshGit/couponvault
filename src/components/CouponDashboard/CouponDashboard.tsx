@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback, useMemo } from "react";
+import React, { useState, useEffect, useCallback, useMemo } from "react";
 import { Ticket } from "lucide-react";
 import { motion, AnimatePresence } from "motion/react";
 import { parseISO } from "date-fns";
@@ -18,12 +18,13 @@ import {
 } from "@/services/coupons-api";
 import { normalizeCoupon } from "@/utils/coupon-utils";
 import { checkExpiringCoupons, ExpiryAlert } from "@/utils/notifications";
-import CouponCard from "./CouponCard";
-import AddCouponModal from "./AddCouponModal";
-import DashboardHeader from "./DashboardHeader";
-import NotificationCenter from "./NotificationCenter";
-import CouponFilters from "./CouponFilters";
-import CouponStatsCard from "./CouponStatsCard";
+import CouponCard from "@/components/CouponCard";
+import AddCouponModal from "@/components/AddCouponModal";
+import DashboardHeader from "@/components/DashboardHeader";
+import NotificationCenter from "@/components/NotificationCenter";
+import CouponFilters from "@/components/CouponFilters";
+import CouponStatsCard from "@/components/CouponStatsCard";
+import { styles } from "./styles";
 
 export default function CouponDashboard() {
   const [coupons, setCoupons] = useState<Coupon[]>([]);
@@ -99,7 +100,7 @@ export default function CouponDashboard() {
   );
 
   const filteredCoupons = useMemo(() => {
-    const now = Date.now();
+    const currentTimestamp = new Date().getTime();
 
     return coupons.filter((coupon) => {
       const matchesSearch =
@@ -109,7 +110,8 @@ export default function CouponDashboard() {
         (coupon.code && coupon.code.toLowerCase().includes(normalizedQuery)) ||
         coupon.expiryDate.includes(searchQuery.trim());
 
-      const isExpiredByDate = parseISO(coupon.expiryDate).getTime() < now;
+      const isExpiredByDate =
+        parseISO(coupon.expiryDate).getTime() < currentTimestamp;
       const isExpired = coupon.status === "expired" || isExpiredByDate;
 
       if (filter === "all") return matchesSearch;
@@ -166,25 +168,21 @@ export default function CouponDashboard() {
   }, []);
 
   return (
-    <div className="min-h-screen pb-20 bg-zinc-50">
+    <div className={styles.pageContainer}>
       <DashboardHeader
         alertCount={alerts.length}
         onToggleNotifications={toggleNotificationCenter}
         onOpenAddModal={openModal}
       />
 
-      <main className="max-w-5xl mx-auto px-4 py-8">
+      <main className={styles.main}>
         <NotificationCenter
           isOpen={showNotificationCenter}
           alerts={alerts}
           onClose={closeNotificationCenter}
         />
 
-        {/* Stats & Search */}
-        <div
-          suppressHydrationWarning
-          className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-12"
-        >
+        <div suppressHydrationWarning className={styles.statsGrid}>
           <CouponFilters
             searchQuery={searchQuery}
             filter={filter}
@@ -201,10 +199,9 @@ export default function CouponDashboard() {
           />
         </div>
 
-        {/* Coupon Grid */}
         <AnimatePresence initial={false}>
           {filteredCoupons.length > 0 ? (
-            <div className="grid w-full grid-cols-1 gap-6 md:grid-cols-2 md:gap-8 xl:grid-cols-2">
+            <div className={styles.couponGrid}>
               {filteredCoupons.map((coupon) => (
                 <CouponCard
                   key={coupon.id}
@@ -218,7 +215,7 @@ export default function CouponDashboard() {
             <motion.div
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
-              className="text-center py-32 bg-white rounded-[3rem] border-2 border-dashed border-zinc-100"
+              className={styles.emptyState}
             >
               <div className="w-20 h-20 bg-zinc-50 rounded-3xl flex items-center justify-center mx-auto mb-6">
                 <Ticket className="w-10 h-10 text-zinc-200" />
