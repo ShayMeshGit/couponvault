@@ -120,15 +120,24 @@ export default function CouponDashboard() {
     [coupons, filter, normalizedQuery, searchQuery],
   );
 
-  const { activeCount, redeemedCount } = useMemo(
+  const { activeCount, redeemedCount, totalLeft, totalLeftCurrency } = useMemo(
     () =>
       coupons.reduce(
         (counts, coupon) => {
           if (coupon.status === "active") counts.activeCount += 1;
           if (coupon.status === "redeemed") counts.redeemedCount += 1;
+          counts.totalLeft += coupon.amountLeft ?? 0;
+          if (!counts.totalLeftCurrency && coupon.currency) {
+            counts.totalLeftCurrency = coupon.currency;
+          }
           return counts;
         },
-        { activeCount: 0, redeemedCount: 0 },
+        {
+          activeCount: 0,
+          redeemedCount: 0,
+          totalLeft: 0,
+          totalLeftCurrency: "₪",
+        },
       ),
     [coupons],
   );
@@ -290,8 +299,14 @@ export default function CouponDashboard() {
               </h2>
             </div>
             <div className="mt-8 flex items-center justify-between">
-              <div className="text-[10px] font-bold text-zinc-500 uppercase tracking-wider">
-                {redeemedCount} Redeemed
+              <div>
+                <div className="text-[10px] font-bold text-zinc-500 uppercase tracking-wider">
+                  {redeemedCount} Redeemed
+                </div>
+                <div className="text-[10px] font-bold text-zinc-500 uppercase tracking-wider mt-1">
+                  Total left: {totalLeftCurrency}
+                  {totalLeft.toFixed(2)}
+                </div>
               </div>
               <div className="w-10 h-1 bg-zinc-800 rounded-full overflow-hidden">
                 <div
