@@ -10,6 +10,7 @@ import React, {
 } from "react";
 import type { LucideIcon } from "lucide-react";
 import { CouponCardProps, CouponCategory } from "@/types";
+import { copyTextToClipboard } from "@/utils/clipboard";
 import {
   Calendar,
   MapPin,
@@ -106,9 +107,10 @@ function CouponCard({ coupon, onDelete, onUpdate }: CouponCardProps) {
     setRedeemAmount(0);
   }, [coupon, onUpdate, redeemAmount]);
 
-  const copyToClipboard = useCallback(() => {
+  const copyToClipboard = useCallback(async () => {
     if (coupon.code) {
-      void navigator.clipboard.writeText(coupon.code);
+      const copiedToClipboard = await copyTextToClipboard(coupon.code);
+      if (!copiedToClipboard) return;
       setCopied(true);
       if (copyResetTimeoutRef.current !== null) {
         window.clearTimeout(copyResetTimeoutRef.current);
