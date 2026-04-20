@@ -41,6 +41,40 @@ const CATEGORY_ICONS: Record<CouponCategory, LucideIcon> = {
   Other: HelpCircle,
 };
 
+export async function copyTextToClipboard(text: string): Promise<boolean> {
+  if (!text) return false;
+
+  if (typeof navigator !== "undefined" && navigator.clipboard?.writeText) {
+    try {
+      await navigator.clipboard.writeText(text);
+      return true;
+    } catch {
+      // Fall back to legacy clipboard approach below.
+    }
+  }
+
+  if (typeof document === "undefined" || !document.body) {
+    return false;
+  }
+
+  const textArea = document.createElement("textarea");
+  textArea.value = text;
+  textArea.setAttribute("readonly", "");
+  textArea.style.position = "fixed";
+  textArea.style.opacity = "0";
+  document.body.appendChild(textArea);
+  textArea.select();
+  textArea.setSelectionRange(0, text.length);
+
+  try {
+    return document.execCommand("copy");
+  } catch {
+    return false;
+  } finally {
+    document.body.removeChild(textArea);
+  }
+}
+
 function CouponCard({ coupon, onDelete, onUpdate }: CouponCardProps) {
   const [isRedeeming, setIsRedeeming] = useState(false);
   const [redeemAmount, setRedeemAmount] = useState<number>(0);
@@ -106,9 +140,10 @@ function CouponCard({ coupon, onDelete, onUpdate }: CouponCardProps) {
     setRedeemAmount(0);
   }, [coupon, onUpdate, redeemAmount]);
 
-  const copyToClipboard = useCallback(() => {
+  const copyToClipboard = useCallback(async () => {
     if (coupon.code) {
-      void navigator.clipboard.writeText(coupon.code);
+      const copiedToClipboard = await copyTextToClipboard(coupon.code);
+      if (!copiedToClipboard) return;
       setCopied(true);
       if (copyResetTimeoutRef.current !== null) {
         window.clearTimeout(copyResetTimeoutRef.current);
