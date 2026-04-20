@@ -10,6 +10,7 @@ import React, {
 } from "react";
 import type { LucideIcon } from "lucide-react";
 import { CouponCardProps, CouponCategory } from "@/types";
+import { copyTextToClipboard } from "@/utils/clipboard";
 import {
   Calendar,
   MapPin,
@@ -40,40 +41,6 @@ const CATEGORY_ICONS: Record<CouponCategory, LucideIcon> = {
   "Home Goods": Home,
   Other: HelpCircle,
 };
-
-export async function copyTextToClipboard(text: string): Promise<boolean> {
-  if (!text) return false;
-
-  if (typeof navigator !== "undefined" && navigator.clipboard?.writeText) {
-    try {
-      await navigator.clipboard.writeText(text);
-      return true;
-    } catch {
-      // Fall back to legacy clipboard approach below.
-    }
-  }
-
-  if (typeof document === "undefined" || !document.body) {
-    return false;
-  }
-
-  const textArea = document.createElement("textarea");
-  textArea.value = text;
-  textArea.setAttribute("readonly", "");
-  textArea.style.position = "fixed";
-  textArea.style.opacity = "0";
-  document.body.appendChild(textArea);
-  textArea.select();
-  textArea.setSelectionRange(0, text.length);
-
-  try {
-    return document.execCommand("copy");
-  } catch {
-    return false;
-  } finally {
-    document.body.removeChild(textArea);
-  }
-}
 
 function CouponCard({ coupon, onDelete, onUpdate }: CouponCardProps) {
   const [isRedeeming, setIsRedeeming] = useState(false);
