@@ -270,13 +270,15 @@ function CouponCard({ coupon, onDelete, onUpdate }: CouponCardProps) {
           )}
         </AnimatePresence>
 
-        <button
-          onClick={() => onDelete(coupon.id)}
-          className="p-2.5 rounded-xl bg-red-50 text-red-500 hover:bg-red-100 transition-colors"
-          title="Delete coupon"
-        >
-          <Trash2 className="w-4 h-4" />
-        </button>
+        {coupon.status !== "redeemed" && coupon.status !== "expired" && !isExpired && (
+          <button
+            onClick={() => onDelete(coupon.id)}
+            className="p-2.5 rounded-xl bg-red-50 text-red-500 hover:bg-red-100 transition-colors"
+            title="Delete coupon"
+          >
+            <Trash2 className="w-4 h-4" />
+          </button>
+        )}
       </div>
 
       {/* Progress bar */}

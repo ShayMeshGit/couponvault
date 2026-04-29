@@ -31,4 +31,42 @@ describe("CouponCard", () => {
     expect(html).toContain("Shop A");
     expect(html).toContain("SAVE10");
   });
+
+  it("shows delete button for active coupon", () => {
+    const html = renderToString(
+      React.createElement(CouponCard, {
+        coupon,
+        onDelete: vi.fn(),
+        onUpdate: vi.fn(),
+      }),
+    );
+
+    expect(html).toContain("Delete coupon");
+  });
+
+  it("hides delete button for redeemed coupon", () => {
+    const redeemedCoupon: Coupon = { ...coupon, status: "redeemed" };
+    const html = renderToString(
+      React.createElement(CouponCard, {
+        coupon: redeemedCoupon,
+        onDelete: vi.fn(),
+        onUpdate: vi.fn(),
+      }),
+    );
+
+    expect(html).not.toContain("Delete coupon");
+  });
+
+  it("hides delete button for expired coupon", () => {
+    const expiredCoupon: Coupon = { ...coupon, expiryDate: "2000-01-01", status: "expired" };
+    const html = renderToString(
+      React.createElement(CouponCard, {
+        coupon: expiredCoupon,
+        onDelete: vi.fn(),
+        onUpdate: vi.fn(),
+      }),
+    );
+
+    expect(html).not.toContain("Delete coupon");
+  });
 });
