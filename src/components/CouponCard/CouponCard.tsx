@@ -89,6 +89,8 @@ function CouponCard({ coupon, onDelete, onUpdate }: CouponCardProps) {
     return "bg-emerald-50 text-emerald-600 border-emerald-100";
   }, [coupon.status, isExpired, isExpiringSoon]);
 
+  const canDelete = coupon.status !== "redeemed" && coupon.status !== "expired" && !isExpired;
+
   const progressPercent = useMemo(() => {
     const originalAmount = coupon.originalAmount ?? 1;
     const amountLeft = coupon.amountLeft ?? 0;
@@ -270,13 +272,15 @@ function CouponCard({ coupon, onDelete, onUpdate }: CouponCardProps) {
           )}
         </AnimatePresence>
 
-        <button
-          onClick={() => onDelete(coupon.id)}
-          className="p-2.5 rounded-xl bg-red-50 text-red-500 hover:bg-red-100 transition-colors"
-          title="Delete coupon"
-        >
-          <Trash2 className="w-4 h-4" />
-        </button>
+        {canDelete && (
+          <button
+            onClick={() => onDelete(coupon.id)}
+            className="p-2.5 rounded-xl bg-red-50 text-red-500 hover:bg-red-100 transition-colors"
+            title="Delete coupon"
+          >
+            <Trash2 className="w-4 h-4" />
+          </button>
+        )}
       </div>
 
       {/* Progress bar */}
