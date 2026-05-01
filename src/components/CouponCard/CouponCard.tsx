@@ -30,7 +30,6 @@ import {
   Check,
 } from "lucide-react";
 import { addDays, format, isWithinInterval, parseISO } from "date-fns";
-import { motion, AnimatePresence } from "motion/react";
 import { styles } from "./styles";
 
 const CATEGORY_ICONS: Record<CouponCategory, LucideIcon> = {
@@ -132,11 +131,7 @@ function CouponCard({ coupon, onDelete, onUpdate }: CouponCardProps) {
   );
 
   return (
-    <motion.div
-      layout
-      initial={{ opacity: 0, y: 20 }}
-      animate={{ opacity: 1, y: 0 }}
-      exit={{ opacity: 0, scale: 0.95 }}
+    <div
       className={`${styles.card} ${
         coupon.status === "redeemed" ? styles.redeemedCard : styles.activeCard
       }`}
@@ -221,13 +216,8 @@ function CouponCard({ coupon, onDelete, onUpdate }: CouponCardProps) {
       </div>
 
       <div className="flex gap-2">
-        <AnimatePresence mode="wait">
           {isRedeeming ? (
-            <motion.div
-              key="redeeming"
-              initial={{ opacity: 0, x: 20 }}
-              animate={{ opacity: 1, x: 0 }}
-              exit={{ opacity: 0, x: -20 }}
+            <div
               className="flex min-w-0 flex-1 gap-2"
             >
               <input
@@ -251,13 +241,9 @@ function CouponCard({ coupon, onDelete, onUpdate }: CouponCardProps) {
               >
                 <X className="w-4 h-4" />
               </button>
-            </motion.div>
+            </div>
           ) : (
-            <motion.button
-              key="normal"
-              initial={{ opacity: 0, x: -20 }}
-              animate={{ opacity: 1, x: 0 }}
-              exit={{ opacity: 0, x: 20 }}
+            <button
               disabled={coupon.status === "redeemed" || isExpired}
               onClick={() => setIsRedeeming(true)}
               className={`flex-1 flex items-center justify-center gap-2 py-2.5 px-4 rounded-xl text-xs font-bold transition-all ${
@@ -268,9 +254,8 @@ function CouponCard({ coupon, onDelete, onUpdate }: CouponCardProps) {
             >
               <MinusCircle className="w-4 h-4" />
               Redeem Amount
-            </motion.button>
+            </button>
           )}
-        </AnimatePresence>
 
         {canDelete && (
           <button
@@ -285,15 +270,12 @@ function CouponCard({ coupon, onDelete, onUpdate }: CouponCardProps) {
 
       {/* Progress bar */}
       <div className={styles.progressTrack}>
-        <motion.div
-          initial={{ width: 0 }}
-          animate={{
-            width: `${progressPercent}%`,
-          }}
+        <div
+          style={{ width: `${progressPercent}%` }}
           className={`h-full ${coupon.status === "redeemed" ? "bg-zinc-300" : "bg-zinc-900"}`}
         />
       </div>
-    </motion.div>
+    </div>
   );
 }
 
